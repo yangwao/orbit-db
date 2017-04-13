@@ -15,7 +15,8 @@ build: test
 	@echo "Output: 'dist/', 'examples/browser/'"
 
 clean:
-	rm -rf orbit-db/
+	rm -rf .orbitdb/
+	rm -rf orbitdb/
 	rm -rf ipfs/
 	rm -rf node_modules/
 

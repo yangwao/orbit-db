@@ -8,6 +8,7 @@ const IpfsDaemon = require('ipfs-daemon/src/ipfs-node-daemon')
 const OrbitDB = require('../src/OrbitDB')
 const line = require('single-line-log').stdout
 const progress = require('progress-string')
+const padString = require('../pad-string')
 
 const chance = new Chance()
 
@@ -70,7 +71,7 @@ ipfs.on('ready', () => {
 
     let lines = events.slice(-size)
       .reverse()
-      .map(e => `│ ${(new Date(e.payload.value.ts)).toISOString()} │ ${buildUserString(e.payload.value.userId)} │ ${buildPaymentAmountString(e.payload.value.payment)} │`)
+      .map(e => `│ ${(new Date(e.payload.value.ts)).toISOString()} │ ${padString(e.payload.value.userId, 32)} │ ${buildPaymentAmountString(e.payload.value.payment)} │`)
       .join('\n')
 
     const latest = events[events.length - 1]

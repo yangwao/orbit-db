@@ -83,7 +83,7 @@ config.daemons.forEach((IpfsDaemon) => {
         waitForPeers(ipfs1, config.dbname)
           .then(() => {
             db2.events.once('error', done)
-            db2.events.once('synced', (db) => {
+            db2.events.once('synced', () => {
               const items = db2.iterator().collect()
               assert.equal(items.length, 1)
               assert.equal(items[0].payload.value, 'hello')
@@ -107,7 +107,7 @@ config.daemons.forEach((IpfsDaemon) => {
           .then(() => {
             let count = 0
             db2.events.once('error', done)
-            db2.events.on('synced', (d) => {
+            db2.events.on('synced', () => {
               if (count === entryCount && !timer) {
                 timer = setInterval(() => {
                   const items = db2.iterator({ limit: -1 }).collect()

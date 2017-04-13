@@ -51,7 +51,7 @@ config.daemons.forEach((IpfsDaemon) => {
       removeDirectories()
     })
 
-    describe('load', function() {
+    describe.skip('load', function() {
       it('loads database from local cache', function(done) {
         const entryCount = 100
         const entryArr = []
