@@ -1,23 +1,30 @@
 'use strict'
 
-const IPFS = require('ipfs-daemon/src/ipfs-browser-daemon')
+const IPFS = require('ipfs')
 const OrbitDB = require('../../src/OrbitDB')
 
 const elm = document.getElementById("output")
 const dbnameField = document.getElementById("dbname")
 const openButton = document.getElementById("open")
 
+localStorage.debug = ''
+
 const openDatabase = () => {
   openButton.disabled = true
   elm.innerHTML = "Starting IPFS..."
 
   const dbname = dbnameField.value
-  const username = new Date().getTime()
+  const username = new Date().getTime().toString()
   const key = 'greeting'
 
   const ipfs = new IPFS({
-    IpfsDataDir: '/orbit-db-/examples/browser',
-    SignalServer: 'star-signal.cloud.ipfs.team', // IPFS dev server
+    repo: '/orbitdb/examples/browser/ipfs',
+    EXPERIMENTAL: { // enable experimental features
+      pubsub: true,
+      sharding: false,
+      dht: false,
+    },    
+    // SignalServer: 'star-signal.cloud.ipfs.team', // IPFS dev server
   })
 
   function handleError(e) {
@@ -32,9 +39,9 @@ const openDatabase = () => {
 
     const orbit = new OrbitDB(ipfs, username)
 
-    const db = orbit.kvstore(dbname, { maxHistory: 5, syncHistory: false, cachePath: '/orbit-db' })
-    const log = orbit.eventlog(dbname + ".log", { maxHistory: 5, syncHistory: false, cachePath: '/orbit-db' })
-    const counter = orbit.counter(dbname + ".count", { maxHistory: 5, syncHistory: false, cachePath: '/orbit-db' })
+    const db = orbit.kvstore(dbname, { maxHistory: 5, syncHistory: false, path: '/orbitdb/examples/browser/keyvalue' })
+    const log = orbit.eventlog(dbname + ".log", { maxHistory: 5, syncHistory: false, path: '/orbitdb/examples/browser/events' })
+    const counter = orbit.counter(dbname + ".count", { maxHistory: 5, syncHistory: false, path: '/orbitdb/examples/browser/counter' })
 
     const creatures = ['👻', '🐙', '🐷', '🐬', '🐞', '🐈', '🙉', '🐸', '🐓']
     const idx = Math.floor(Math.random() * creatures.length)

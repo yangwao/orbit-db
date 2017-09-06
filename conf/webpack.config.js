@@ -1,7 +1,7 @@
 'use strict'
 
-const webpack = require('webpack')
 const path = require('path')
+const Uglify = require('uglifyjs-webpack-plugin')
 
 module.exports = {
   entry: './src/OrbitDB.js',
@@ -10,7 +10,15 @@ module.exports = {
     library: 'OrbitDB',
     filename: './dist/orbitdb.min.js'
   },
+  target: 'web',
   devtool: 'source-map',
+  node: {
+    console: false,
+    Buffer: true
+  },
+  plugins: [
+    new Uglify(),
+  ],
   resolve: {
     modules: [
       'node_modules',
@@ -24,10 +32,4 @@ module.exports = {
     ],
     moduleExtensions: ['-loader']
   },
-  node: {
-    console: false,
-    Buffer: true
-  },
-  plugins: [],
-  target: 'web'
 }

@@ -1,26 +1,34 @@
-const webpack = require('webpack')
+'use strict'
+
 const path = require('path')
+const webpack = require('webpack')
+const Uglify = require('uglifyjs-webpack-plugin')
+
+const uglifyOptions = {
+  uglifyOptions: {
+    mangle: false,
+  },
+}
 
 module.exports = {
   entry: './examples/browser/index.js',
   output: {
     filename: './examples/browser/bundle.js'
   },
+  target: 'web',
   devtool: 'sourcemap',
-  stats: { 
-    colors: true, 
-    cached: false 
-  },
   node: {
     console: false,
     process: 'mock',
     Buffer: true
   },
   plugins: [
-    new webpack.optimize.UglifyJsPlugin({
-      mangle: false,
-      compress: { warnings: false }
-    })
+    new webpack.DefinePlugin({
+      'process.env': {
+        'NODE_ENV': JSON.stringify(process.env.NODE_ENV)
+      }
+    }),
+    new Uglify(uglifyOptions),
   ],
   resolve: {
     modules: [
@@ -52,9 +60,4 @@ module.exports = {
       loader: 'json-loader'
     }]
   },
-  node: {
-    Buffer: true
-  },
-  plugins: [],
-  target: 'web'
 }
