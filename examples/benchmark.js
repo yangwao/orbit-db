@@ -1,6 +1,8 @@
 'use strict'
 
-const IpfsDaemon = require('ipfs-daemon/src/ipfs-node-daemon')
+const IPFS = require('ipfs')
+const IPFSRepo = require('ipfs-repo')
+const DatastoreLevel = require('datastore-level')
 const OrbitDB = require('../src/OrbitDB')
 
 // Metrics
@@ -11,8 +13,11 @@ let lastTenSeconds = 0
 
 // Main loop
 const queryLoop = (db) => {
+  const st = new Date().getTime()
   db.add(totalQueries)
     .then(() => {
+      const et = new Date().getTime()
+      // console.log(et - st + " ms")
       totalQueries ++
       lastTenSeconds ++
       queriesPerSecond ++
@@ -24,13 +29,25 @@ const queryLoop = (db) => {
 // Start
 console.log("Starting IPFS daemon...")
 
-const ipfs = new IpfsDaemon()
+const repoConf = {
+  storageBackends: {
+    blocks: DatastoreLevel,
+  },  
+}
+
+const ipfs = new IPFS({
+  repo: new IPFSRepo('./orbitdb/benchmarks/ipfs', repoConf),
+  start: false,
+})
 
 ipfs.on('error', (err) => console.error(err))
 
 ipfs.on('ready', () => {
   const orbit = new OrbitDB(ipfs, 'benchmark')
-  const db = orbit.eventlog('orbit-db.benchmark', { maxHistory: 100 })
+  const db = orbit.eventlog('orbit-db.benchmark', { 
+    replicate: false,
+    path: './orbitdb/benchmarks',
+  })
 
   // Metrics output
   setInterval(() => {
@@ -41,7 +58,7 @@ ipfs.on('ready', () => {
         throw new Error("Problems!")
       lastTenSeconds = 0
     }
-    console.log(`${queriesPerSecond} queries per second, ${totalQueries} queries in ${seconds} seconds`)
+    console.log(`${queriesPerSecond} queries per second, ${totalQueries} queries in ${seconds} seconds (Oplog: ${db._oplog.length})`)
     queriesPerSecond = 0
   }, 1000)
 

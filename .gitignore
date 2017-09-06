@@ -4,6 +4,4 @@ examples/browser/bundle.js
 examples/browser/*.map
 examples/browser/lib
 dist/*.map
-.orbitdb/
-ipfs/
 orbitdb/
