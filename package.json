@@ -17,6 +17,7 @@
   "main": "src/OrbitDB.js",
   "dependencies": {
     "logplease": "^1.2.12",
+    "multihashes": "^0.4.9",
     "orbit-db-cache": "github:orbitdb/orbit-db-cache#fix/default-filename",
     "orbit-db-counterstore": "github:orbitdb/orbit-db-counterstore#feat/cli",
     "orbit-db-docstore": "github:orbitdb/orbit-db-docstore#feat/cli",
@@ -24,10 +25,7 @@
     "orbit-db-feedstore": "github:orbitdb/orbit-db-feedstore#feat/cli",
     "orbit-db-kvstore": "github:orbitdb/orbit-db-kvstore#feat/cli",
     "orbit-db-pubsub": "github:orbitdb/orbit-db-pubsub",
-    "orbit-db-store": "github:orbitdb/orbit-db-store#feat/replication",
-    "progress-string": "^1.2.1",
-    "single-line-log": "^1.1.2",
-    "yargs": "^8.0.2"
+    "orbit-db-store": "github:orbitdb/orbit-db-store#feat/replication"
   },
   "devDependencies": {
     "babel-core": "^6.26.0",

@@ -9,6 +9,7 @@ const DocumentStore = require('orbit-db-docstore')
 const Pubsub        = require('orbit-db-pubsub')
 const Cache = require('orbit-db-cache')
 const path = require('path')
+const parseAddress = require('./parse-address')
 
 const defaultNetworkName = 'Orbit DEV Network'
 
@@ -60,44 +61,41 @@ class OrbitDB {
     this.network = null
   }
 
-  static isValidType (types, type) {
-    return types.includes(type)
-  }
-
-  create (dbname, type, directory, options) {
-    const p = path.join(directory || './orbitdb', this.user.id)
-    this._cache = new Cache(p, dbname)
+  create (address, type, directory, options) {
+    const p = path.join(directory || './orbitdb')
+    const addr = OrbitDB.parseAddress(address, this.user.id)
+    this._cache = new Cache(p, addr.indexOf('/orbitdb') === 0 ? addr.replace('/orbitdb', '') : addr)
     options = Object.assign({}, options, { path: p, cache: this._cache })
     return this._cache.load()
-      .then(() => this._cache.get(dbname))
+      .then(() => this._cache.get(addr))
       .then((hash) => {
         if (hash) 
-          throw new Error(`Database '${dbname}' already exists!`)
+          throw new Error(`Database '${addr}' already exists!`)
 
           if (!OrbitDB.isValidType(this.types, type))
             throw new Error(`Invalid database type '${type}'.`)
       })
-      .then(() => this._cache.set(dbname, dbname.split('/').length === 3 ? dbname.split('/')[1] : this.user.id))
-      .then(() => this._cache.set(dbname + '.type', type))
-      .then(() => this._cache.set(dbname + '.localhead', null))
-      .then(() => this._cache.set(dbname + '.remotehead', null))
-      .then(() => this._openDatabase(dbname, type, options))
+      // .then(() => this._cache.set(addr, addr))
+      .then(() => this._cache.set(addr + '.type', type))
+      .then(() => this._cache.set(addr + '.localhead', null))
+      .then(() => this._cache.set(addr + '.remotehead', null))
+      .then(() => this._openDatabase(addr, type, options))
   }
 
-  async load (dbname, directory, options) {
-    const p = path.join(directory || './orbitdb', this.user.id)
-    this._cache = new Cache(p, dbname)
+  load (address, directory, options) {
+    const p = path.join(directory || './orbitdb')
+    const addr = OrbitDB.parseAddress(address, this.user.id)
+    this._cache = new Cache(p, addr.indexOf('/orbitdb') === 0 ? addr.replace('/orbitdb', '') : addr)
     options = Object.assign({}, options, { path: p, cache: this._cache })
     return this._cache.load()
-      .then(() => this._cache.get(dbname + '.type'))
+      .then(() => this._cache.get(addr + '.type'))
       .then((type) => {
         if (!type)
-          throw new Error(`Database '${dbname}' doesn't exist.`)
+          throw new Error(`Database '${addr}' doesn't exist.`)
 
-        return this._openDatabase(dbname, type, options)
+        return this._openDatabase(addr, type, options)
       })
   }
-
 
   _openDatabase (dbname, type, options) {
     if (type === 'counter')
@@ -132,7 +130,6 @@ class OrbitDB {
 
   /* Replication request from the message broker */
   _onMessage(dbname, heads) {
-    // console.log(".MESSAGE", dbname, heads)
     const store = this.stores[dbname]
     store.sync(heads)
   }
@@ -140,16 +137,22 @@ class OrbitDB {
   /* Data events */
   _onWrite(dbname, hash, entry, heads) {
     // 'New entry written to database...', after adding a new db entry locally
-    // console.log(".WRITE", dbname, hash, this.user.username)
     if(!heads) throw new Error("'heads' not defined")
     if(this._pubsub) setImmediate(() => this._pubsub.publish(dbname, heads))
   }
 
   _onReady(dbname, heads) {
-    // if(heads && this._pubsub) setImmediate(() => this._pubsub.publish(dbname, heads))
     if(heads && this._pubsub) {
       setTimeout(() => this._pubsub.publish(dbname, heads), 1000)
     }
+  }
+
+  static isValidType (types, type) {
+    return types.includes(type)
+  }
+
+  static parseAddress (address, id) {
+    return parseAddress(address, id)
   }
 }
 

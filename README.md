@@ -34,11 +34,11 @@ Try the [live demo](https://ipfs.io/ipfs/QmUETzzv9FxBwPn4H6q3i6QXTzicvV3MMuKN53J
 ## Usage
 
 ```
-npm install orbit-db ipfs-daemon
+npm install orbit-db ipfs
 ```
 
 ```javascript
-const IPFS = require('ipfs-daemon/src/ipfs-node-daemon')
+const IPFS = require('ipfs')
 const OrbitDB = require('orbit-db')
 
 const ipfs = new IPFS()
