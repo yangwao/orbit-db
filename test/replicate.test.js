@@ -79,13 +79,13 @@ describe('orbit-db - Replication', function() {
         path: dbPath1
       })
 
-      db2 = client2.eventlog(config.dbname, { 
+      db2 = client2.eventlog(db1.path, { 
         path: dbPath2
       })
     })
 
     it('replicates database of 1 entry', (done) => {
-      waitForPeers(ipfs1, config.dbname)
+      waitForPeers(ipfs1, db1.path)
         .then(() => {
           db2.events.once('error', done)
           db2.events.once('synced', () => {
@@ -108,7 +108,7 @@ describe('orbit-db - Replication', function() {
       for (let i = 0; i < entryCount; i ++)
         entryArr.push(i)
 
-      waitForPeers(ipfs1, config.dbname)
+      waitForPeers(ipfs1, db1.path)
         .then(() => {
           let count = 0
           db2.events.once('error', done)

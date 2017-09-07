@@ -107,13 +107,14 @@ describe('CounterStore', function() {
     it('syncs counters', (done) => {
       const name = new Date().getTime().toString()
       const counter1 = client1.counter(name, { path: dbPath1 + '/d1' })
-      const counter2 = client2.counter(name, { path: dbPath2 + '/d2' })
+      const counter2 = client2.counter(counter1.path, { path: dbPath2 + '/d2' })
       const numbers = [[13, 10], [2, 5]]
 
       const increaseCounter = (counter, i) => mapSeries(numbers[i], (e) => counter.inc(e))
 
-      waitForPeers(daemon1, [id2], name, (err, res) => {
-        waitForPeers(daemon2, [id1], name, (err, res) => {
+      waitForPeers(daemon1, [id2], counter1.path, (err, res) => {
+        waitForPeers(daemon2, [id1], counter1.path, (err, res) => {
+          console.log("found peers!")
           mapSeries([counter1, counter2], increaseCounter)
             .then(() => {
               // wait for a while to make sure db's have been synced
