@@ -18,13 +18,16 @@ const openDatabase = () => {
   const key = 'greeting'
 
   const ipfs = new IPFS({
-    repo: '/orbitdb/examples/browser/ipfs',
+    repo: '/orbitdb/examples/browser/ipfs' + username + '/ipfs',
+    // init: true,
     EXPERIMENTAL: { // enable experimental features
       pubsub: true,
       sharding: false,
       dht: false,
-    },    
-    // SignalServer: 'star-signal.cloud.ipfs.team', // IPFS dev server
+    },
+    config: {
+      Bootstrap: []
+    },
   })
 
   function handleError(e) {
@@ -65,13 +68,18 @@ const openDatabase = () => {
       const result = db.get(key)
       const latest = log.iterator({ limit: 5 }).collect()
       const count  = counter.value
+      let swarmPeers = []
 
-      ipfs.pubsub.peers(dbname + ".log")
+      ipfs.swarm.peers()
+        .then((swarm) => swarmPeers = swarm)
+        .then(() => ipfs.pubsub.peers(db.path))
         .then((peers) => {
+          console.log("peers:", peers)
+          console.log("swarm peers:", swarmPeers)
           const output = `
             <b>You are:</b> ${username} ${creature}<br>
-            <b>Peers:</b> ${peers.length}<br>
-            <b>Database:</b> ${dbname}<br>
+            <b>Peers (database/network):</b> ${peers.length} / ${swarmPeers.length}<br>
+            <b>Database:</b> ${db.path}<br>
             <br><b>Writing to database every ${interval} milliseconds...</b><br><br>
             <b>Key-Value Store</b>
             -------------------------------------------------------
@@ -92,6 +100,7 @@ const openDatabase = () => {
             -------------------------------------------------------
             `
           elm.innerHTML = output.split("\n").join("<br>")
+          console.log(db.path)
         })
     }
 
