@@ -75,7 +75,6 @@ class OrbitDB {
           if (!OrbitDB.isValidType(this.types, type))
             throw new Error(`Invalid database type '${type}'.`)
       })
-      // .then(() => this._cache.set(addr, addr))
       .then(() => this._cache.set(addr + '.type', type))
       .then(() => this._cache.set(addr + '.localhead', null))
       .then(() => this._cache.set(addr + '.remotehead', null))
@@ -90,10 +89,13 @@ class OrbitDB {
     return this._cache.load()
       .then(() => this._cache.get(addr + '.type'))
       .then((type) => {
-        if (!type)
+        options.type
+        if (!type && !options.type)
           throw new Error(`Database '${addr}' doesn't exist.`)
-
-        return this._openDatabase(addr, type, options)
+        else if (options.type && options.create === true)
+          return this.create(address, options.type, directory, options)
+        else
+          this._openDatabase(addr, type, options)
       })
   }
 
@@ -116,31 +118,32 @@ class OrbitDB {
   _createStore(Store, dbname, options) {
     const opts = Object.assign({ replicate: true }, options)
 
+    const addr = OrbitDB.parseAddress(dbname, this.user.id)
     const store = new Store(this._ipfs, this.user.id, dbname, opts)
     store.events.on('write', this._onWrite.bind(this))
     store.events.on('ready', this._onReady.bind(this))
 
-    this.stores[store.path] = store
+    this.stores[addr] = store
 
     if(opts.replicate && this._pubsub)
-      this._pubsub.subscribe(store.path, this._onMessage.bind(this))
+      this._pubsub.subscribe(addr, this._onMessage.bind(this))
 
     return store
   }
 
-  /* Replication request from the message broker */
+  // Callback for receiving a message from the network
   _onMessage(dbname, heads) {
     const store = this.stores[dbname]
     store.sync(heads)
   }
 
-  /* Data events */
+  // Callback for local writes to the database. We the update to pubsub.
   _onWrite(dbname, hash, entry, heads) {
-    // 'New entry written to database...', after adding a new db entry locally
     if(!heads) throw new Error("'heads' not defined")
     if(this._pubsub) setImmediate(() => this._pubsub.publish(dbname, heads))
   }
 
+  // Callback for database being ready
   _onReady(dbname, heads) {
     if(heads && this._pubsub) {
       setTimeout(() => this._pubsub.publish(dbname, heads), 1000)
