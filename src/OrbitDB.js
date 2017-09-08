@@ -1,13 +1,13 @@
 'use strict'
 
-const EventStore    = require('orbit-db-eventstore')
-const FeedStore     = require('orbit-db-feedstore')
-const KeyValueStore = require('orbit-db-kvstore')
-const CounterStore  = require('orbit-db-counterstore')
-const DocumentStore = require('orbit-db-docstore')
-const Pubsub        = require('orbit-db-pubsub')
-const Cache = require('orbit-db-cache')
 const path = require('path')
+const EventStore = require('orbit-db-eventstore')
+const FeedStore = require('orbit-db-feedstore')
+const KeyValueStore = require('orbit-db-kvstore')
+const CounterStore = require('orbit-db-counterstore')
+const DocumentStore = require('orbit-db-docstore')
+const Pubsub = require('orbit-db-pubsub')
+const Cache = require('orbit-db-cache')
 const parseAddress = require('./parse-address')
 
 class OrbitDB {
@@ -110,9 +110,8 @@ class OrbitDB {
 
   /* Private methods */
   _createStore(Store, dbname, options) {
-    const opts = Object.assign({ replicate: true }, options)
-
     const addr = OrbitDB.parseAddress(dbname, this.id)
+    const opts = Object.assign({ replicate: true }, options)
     const store = new Store(this._ipfs, this.id, dbname, opts)
     store.events.on('write', this._onWrite.bind(this))
     store.events.on('ready', this._onReady.bind(this))
