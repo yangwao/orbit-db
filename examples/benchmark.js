@@ -34,6 +34,7 @@ const repoConf = {
 
 const ipfs = new IPFS({
   repo: new IPFSRepo('./orbitdb/benchmarks/ipfs', repoConf),
+  start: false,
   EXPERIMENTAL: {
     pubsub: true
   },
