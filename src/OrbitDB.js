@@ -13,7 +13,7 @@ const parseAddress = require('./parse-address')
 class OrbitDB {
   constructor(ipfs, options = {}) {
     this._ipfs = ipfs
-    this.id = options.peerId || this._ipfs._peerInfo ? this._ipfs._peerInfo.id._idB58String : 'default'
+    this.id = options.peerId || (this._ipfs._peerInfo ? this._ipfs._peerInfo.id._idB58String : 'default')
     this._pubsub = options && options.broker 
       ? new options.broker(ipfs) 
       : new Pubsub(ipfs, this.id)
