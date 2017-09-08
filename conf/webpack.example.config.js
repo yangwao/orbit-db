@@ -16,19 +16,19 @@ module.exports = {
     filename: './examples/browser/bundle.js'
   },
   target: 'web',
-  devtool: 'sourcemap',
+  devtool: 'none',
   node: {
     console: false,
     process: 'mock',
     Buffer: true
   },
   plugins: [
-    // new webpack.DefinePlugin({
-    //   'process.env': {
-    //     'NODE_ENV': JSON.stringify(process.env.NODE_ENV)
-    //   }
-    // }),
-    // new Uglify(uglifyOptions),
+    new webpack.DefinePlugin({
+      'process.env': {
+        'NODE_ENV': JSON.stringify(process.env.NODE_ENV)
+      }
+    }),
+    new Uglify(uglifyOptions),
   ],
   resolve: {
     modules: [

@@ -25,8 +25,8 @@ describe('orbit-db - Feed', function() {
     ipfs.on('error', done)
     ipfs.on('ready', () => {
       assert.equal(hasIpfsApiWithPubsub(ipfs), true)
-      client1 = new OrbitDB(ipfs, 'A')
-      client2 = new OrbitDB(ipfs, 'B')
+      client1 = new OrbitDB(ipfs)
+      client2 = new OrbitDB(ipfs)
       done()
     })
   })

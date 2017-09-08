@@ -22,7 +22,7 @@ describe('orbit-db - Persistency', function() {
     ipfs = new IPFS(config.daemon1)
     ipfs.on('error', done)
     ipfs.on('ready', () => {
-      client = new OrbitDB(ipfs, 'A')
+      client = new OrbitDB(ipfs)
       assert.equal(hasIpfsApiWithPubsub(ipfs), true)
       done()
     })

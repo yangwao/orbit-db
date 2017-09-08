@@ -1,6 +1,5 @@
 'use strict'
 
-const EventEmitter  = require('events').EventEmitter
 const EventStore    = require('orbit-db-eventstore')
 const FeedStore     = require('orbit-db-feedstore')
 const KeyValueStore = require('orbit-db-kvstore')
@@ -11,15 +10,13 @@ const Cache = require('orbit-db-cache')
 const path = require('path')
 const parseAddress = require('./parse-address')
 
-const defaultNetworkName = 'Orbit DEV Network'
-
 class OrbitDB {
-  constructor(ipfs, id = 'default', options = {}) {
+  constructor(ipfs, options = {}) {
     this._ipfs = ipfs
-    this._pubsub = options && options.broker ? new options.broker(ipfs) : new Pubsub(ipfs, id)
-    this.user = { id: id }
-    this.network = { name: defaultNetworkName }
-    this.events = new EventEmitter()
+    this.id = options.peerId || this._ipfs._peerInfo ? this._ipfs._peerInfo.id._idB58String : 'default'
+    this._pubsub = options && options.broker 
+      ? new options.broker(ipfs) 
+      : new Pubsub(ipfs, this.id)
     this.stores = {}
     this.types = ['eventlog', 'feed', 'docstore', 'counter', 'keyvalue']
   }
@@ -57,13 +54,11 @@ class OrbitDB {
     Object.keys(this.stores).forEach((e) => this.close(e))
     if (this._pubsub) this._pubsub.disconnect()
     this.stores = {}
-    this.user = null
-    this.network = null
   }
 
   create (address, type, directory, options) {
     const p = path.join(directory || './orbitdb')
-    const addr = OrbitDB.parseAddress(address, this.user.id)
+    const addr = OrbitDB.parseAddress(address, this.id)
     this._cache = new Cache(p, addr.indexOf('/orbitdb') === 0 ? addr.replace('/orbitdb', '') : addr)
     options = Object.assign({}, options, { path: p, cache: this._cache })
     return this._cache.load()
@@ -83,19 +78,18 @@ class OrbitDB {
 
   load (address, directory, options) {
     const p = path.join(directory || './orbitdb')
-    const addr = OrbitDB.parseAddress(address, this.user.id)
+    const addr = OrbitDB.parseAddress(address, this.id)
     this._cache = new Cache(p, addr.indexOf('/orbitdb') === 0 ? addr.replace('/orbitdb', '') : addr)
     options = Object.assign({}, options, { path: p, cache: this._cache })
     return this._cache.load()
       .then(() => this._cache.get(addr + '.type'))
       .then((type) => {
-        options.type
         if (!type && !options.type)
           throw new Error(`Database '${addr}' doesn't exist.`)
-        else if (options.type && options.create === true)
+        else if (!type && options.type && options.create === true)
           return this.create(address, options.type, directory, options)
         else
-          this._openDatabase(addr, type, options)
+          return this._openDatabase(addr, type, options)
       })
   }
 
@@ -118,8 +112,8 @@ class OrbitDB {
   _createStore(Store, dbname, options) {
     const opts = Object.assign({ replicate: true }, options)
 
-    const addr = OrbitDB.parseAddress(dbname, this.user.id)
-    const store = new Store(this._ipfs, this.user.id, dbname, opts)
+    const addr = OrbitDB.parseAddress(dbname, this.id)
+    const store = new Store(this._ipfs, this.id, dbname, opts)
     store.events.on('write', this._onWrite.bind(this))
     store.events.on('ready', this._onReady.bind(this))
 

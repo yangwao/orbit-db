@@ -52,8 +52,8 @@ describe('orbit-db - Replication', function() {
       ipfs2.on('error', done)
       ipfs2.on('ready', () => {
         assert.equal(hasIpfsApiWithPubsub(ipfs2), true)
-        client1 = new OrbitDB(ipfs1, "one")
-        client2 = new OrbitDB(ipfs2, "two")
+        client1 = new OrbitDB(ipfs1)
+        client2 = new OrbitDB(ipfs2)
         done()
       })
     })

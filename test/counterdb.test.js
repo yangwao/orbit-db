@@ -33,7 +33,6 @@ const waitForPeers = (ipfs, peersToWait, topic, callback) => {
 describe('CounterStore', function() {
   this.timeout(config.timeout)
 
-  let id1, id2
   let client1, client2
   let daemon1, daemon2
 
@@ -45,17 +44,11 @@ describe('CounterStore', function() {
     daemon1 = new IPFS(config.daemon1)
     daemon1.on('ready', () => {
       assert.equal(hasIpfsApiWithPubsub(daemon1), true)
-      daemon1.id()
-        .then((id) => id1 = id.id)
-        .then(() => {
-          daemon2 = new IPFS(config.daemon2)
-          daemon2.on('ready', () => {
-            assert.equal(hasIpfsApiWithPubsub(daemon2), true)
-            daemon2.id()
-              .then((id) => id2 = id.id)
-              .then(() => done())
-          })
-        })
+      daemon2 = new IPFS(config.daemon2)
+      daemon2.on('ready', () => {
+        assert.equal(hasIpfsApiWithPubsub(daemon2), true)
+        done()
+      })
     })
   })
 
@@ -74,8 +67,8 @@ describe('CounterStore', function() {
   })
 
   beforeEach(() => {
-    client1 = new OrbitDB(daemon1, 'A')
-    client2 = new OrbitDB(daemon2, 'B')
+    client1 = new OrbitDB(daemon1)
+    client2 = new OrbitDB(daemon2)
   })
 
   describe('counters', function() {
@@ -112,9 +105,8 @@ describe('CounterStore', function() {
 
       const increaseCounter = (counter, i) => mapSeries(numbers[i], (e) => counter.inc(e))
 
-      waitForPeers(daemon1, [id2], counter1.path, (err, res) => {
-        waitForPeers(daemon2, [id1], counter1.path, (err, res) => {
-          console.log("found peers!")
+      waitForPeers(daemon1, [client2.id], counter1.path, (err, res) => {
+        waitForPeers(daemon2, [client1.id], counter1.path, (err, res) => {
           mapSeries([counter1, counter2], increaseCounter)
             .then(() => {
               // wait for a while to make sure db's have been synced

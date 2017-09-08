@@ -21,7 +21,7 @@ const ipfs = new IpfsDaemon(conf)
 ipfs.on('error', (err) => console.error(err))
 
 ipfs.on('ready', () => {
-  const orbitdb = new OrbitDB(ipfs, userId)
+  const orbitdb = new OrbitDB(ipfs)
   const db = orbitdb.eventlog("|orbit-db|examples|eventlog-example")
 
   const creatures = ['🐙', '🐷', '🐬', '🐞', '🐈', '🙉', '🐸', '🐓']

@@ -11,7 +11,7 @@ module.exports = {
     filename: './dist/orbitdb.min.js'
   },
   target: 'web',
-  devtool: 'source-map',
+  devtool: 'none',
   node: {
     console: false,
     Buffer: true
