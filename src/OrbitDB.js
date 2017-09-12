@@ -42,16 +42,8 @@ class OrbitDB {
     return this._createStore(DocumentStore, dbname, options)
   }
 
-  close(dbname) {
-    if(this._pubsub) this._pubsub.unsubscribe(dbname)
-    if (this.stores[dbname]) {
-      this.stores[dbname].events.removeAllListeners('write')
-      delete this.stores[dbname]
-    }
-  }
-
   disconnect() {
-    Object.keys(this.stores).forEach((e) => this.close(e))
+    Object.keys(this.stores).forEach((e) => e.close())
     if (this._pubsub) this._pubsub.disconnect()
     this.stores = {}
   }
@@ -115,6 +107,7 @@ class OrbitDB {
     const store = new Store(this._ipfs, this.id, dbname, opts)
     store.events.on('write', this._onWrite.bind(this))
     store.events.on('ready', this._onReady.bind(this))
+    store.events.on('close', this._onClose.bind(this))
 
     this.stores[addr] = store
 
@@ -140,6 +133,17 @@ class OrbitDB {
   _onReady(dbname, heads) {
     if(heads && this._pubsub) {
       setTimeout(() => this._pubsub.publish(dbname, heads), 1000)
+    }
+  }
+
+  _onClose(dbname) {
+    if(this._pubsub) this._pubsub.unsubscribe(dbname)
+    if (this.stores[dbname]) {
+      this.stores[dbname].events.removeAllListeners('write')
+      this.stores[dbname].events.removeAllListeners('ready')
+      this.stores[dbname].events.removeAllListeners('close')
+      this.stores[dbname].close()
+      delete this.stores[dbname]
     }
   }
 

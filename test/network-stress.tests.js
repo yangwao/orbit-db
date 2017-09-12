@@ -38,7 +38,7 @@ const waitForPeers = (ipfs, topic) => {
   })
 }
 
-describe.skip('OrbitDB - Network Stress Tests', function() {
+describe.only('OrbitDB - Network Stress Tests', function() {
   // We need a huge timeout since we're running
   // very long-running tests (takes minutes)
   this.timeout(1000 * 60 * 60) // 1 hour
@@ -128,9 +128,10 @@ describe.skip('OrbitDB - Network Stress Tests', function() {
       const sequential = test.sequential
       const clientData = test.clients
 
+      rmrf.sync(rootPath)
+
       // Create IPFS instances
       const createIpfsInstance = (c) => {
-        rmrf.sync(rootPath)
         const repoPath = path.join(rootPath, c.name, '/ipfs' + new Date().getTime())
         console.log("Starting IPFS instance <<>>", repoPath)
         return startIpfs(Object.assign({}, config.defaultIpfsConfig, {
@@ -249,7 +250,10 @@ describe.skip('OrbitDB - Network Stress Tests', function() {
         }, result[0])
 
         // Success! Cleanup and finish
-        pEachSeries(databases, db => db._ipfs.stop())
+        pEachSeries(databases, db => {
+          db.close()
+          db._ipfs.stop()
+        })
           .then(() => done())
       })
       .catch(done)
