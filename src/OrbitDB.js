@@ -43,7 +43,7 @@ class OrbitDB {
   }
 
   disconnect() {
-    Object.keys(this.stores).forEach((e) => e.close())
+    Object.keys(this.stores).forEach((e) => this.stores[e].close())
     if (this._pubsub) this._pubsub.disconnect()
     this.stores = {}
   }

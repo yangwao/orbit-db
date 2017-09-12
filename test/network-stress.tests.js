@@ -38,15 +38,15 @@ const waitForPeers = (ipfs, topic) => {
   })
 }
 
-describe.only('OrbitDB - Network Stress Tests', function() {
+describe.skip('OrbitDB - Network Stress Tests', function() {
   // We need a huge timeout since we're running
   // very long-running tests (takes minutes)
   this.timeout(1000 * 60 * 60) // 1 hour
 
   const tests = [
     {
-      description: '1 message - 2 peers - as fast as possible',
-      messages: 1,
+      description: '1 update - 2 peers - as fast as possible',
+      updates: 1,
       maxInterval: -1,
       minInterval: 0,
       sequential: false,
@@ -64,8 +64,8 @@ describe.only('OrbitDB - Network Stress Tests', function() {
       ],
     },
     {
-      description: '32 messages - concurrent - 2 peers - random interval',
-      messages: 32,
+      description: '32 update - concurrent - 2 peers - random interval',
+      updates: 32,
       maxInterval: 2000,
       minInterval: 10,
       sequential: false,
@@ -76,8 +76,8 @@ describe.only('OrbitDB - Network Stress Tests', function() {
       ],
     },
     {
-      description: '1000 messages concurrently - 2 peers - as fast as possible',
-      messages: 1000,
+      description: '1000 update concurrently - 2 peers - as fast as possible',
+      updates: 1000,
       maxInterval: -1,
       minInterval: 0,
       sequential: false,
@@ -88,8 +88,8 @@ describe.only('OrbitDB - Network Stress Tests', function() {
       ],
     },
     {
-      description: '200 messages as Buffers sequentially - 2 peers - as fast as possible',
-      messages: 200,
+      description: '200 update as Buffers sequentially - 2 peers - as fast as possible',
+      updates: 200,
       maxInterval: -1,
       minInterval: 0,
       sequential: true,
@@ -100,8 +100,8 @@ describe.only('OrbitDB - Network Stress Tests', function() {
       ],
     },
     {
-      description: '50 messages over a period long time - 6 peers - slow, random write intervals',
-      messages: 50,
+      description: '50 update over a period long time - 6 peers - slow, random write intervals',
+      updates: 50,
       maxInterval: 3000,
       minInterval: 1000,
       sequential: false,
@@ -115,6 +115,24 @@ describe.only('OrbitDB - Network Stress Tests', function() {
         { name: 'daemon6' },
       ],
     },
+    {
+      description: '50 update over a period long time - 8 peers - slow, random write intervals',
+      updates: 100,
+      maxInterval: 3000,
+      minInterval: 1000,
+      sequential: false,
+      content: 'Terve! ',
+      clients: [
+        { name: 'daemon1' },
+        { name: 'daemon2' },
+        { name: 'daemon3' },
+        { name: 'daemon4' },
+        { name: 'daemon5' },
+        { name: 'daemon6' },
+        { name: 'daemon7' },
+        { name: 'daemon8' },
+      ],
+    },
   ]
 
   const rootPath = './orbitdb/network-tests/'
@@ -122,7 +140,7 @@ describe.only('OrbitDB - Network Stress Tests', function() {
 
   tests.forEach(test => {
     it(test.description, (done) => {
-      const messageCount = test.messages
+      const updateCount = test.updates
       const maxInterval = test.maxInterval || -1
       const minInterval = test.minInterval || 0
       const sequential = test.sequential
@@ -153,18 +171,18 @@ describe.only('OrbitDB - Network Stress Tests', function() {
       const setupAllTasks = (databases) => {
         // Create the payloads
         let texts = []
-        for (let i = 1; i < messageCount + 1; i ++) {
+        for (let i = 1; i < updateCount + 1; i ++) {
           texts.push(test.content + i)
         }
 
-        const setupMessages = (client) => texts.reduce((res, acc) => {
+        const setupUpdates = (client) => texts.reduce((res, acc) => {
           return res.concat([{ db: client, content: acc }])
         }, [])
 
         allTasks = databases.map(db => {
           return {
             name: db.id,
-            tasks: setupMessages(db),
+            tasks: setupUpdates(db),
           }
         })
       }
@@ -184,13 +202,13 @@ describe.only('OrbitDB - Network Stress Tests', function() {
         return new Promise((resolve, reject) => {
           if (maxInterval === -1) {
             task.db.add(task.content)
-              .then(() => process.stdout.write(`\rSent: ${Math.floor(++i / databases.length)} (x${databases.length})`))
+              .then(() => process.stdout.write(`\rUpdates (${databases.length} peers): ${Math.floor(++i)} / ${updateCount}`))
               .then(resolve)
               .catch(reject)
           } else {
             setTimeout(() => {
               task.db.add(task.content)
-                .then(() => process.stdout.write(`\rSent: ${Math.floor(++i / databases.length)} (x${databases.length})`))
+                .then(() => process.stdout.write(`\rUpdates (${databases.length} peers): ${Math.floor(++i)} / ${updateCount}`))
                 .then(resolve)
                 .catch(reject)
             }, Math.floor(Math.random() * maxInterval) + minInterval)
@@ -201,17 +219,17 @@ describe.only('OrbitDB - Network Stress Tests', function() {
       const waitForAllTasks = (channelName) => {
         let msgCount = 0
         return pWhilst(
-          () => msgCount < databases.length * databases.length * messageCount,
+          () => msgCount < databases.length * databases.length * updateCount,
           () => new Promise(resolve => {
             return getAllTasks(channelName)
               .then(res => {
                 msgCount = res.reduce((val, acc) => val += acc.length, 0)
               })
-              .then(() => process.stdout.write("\rReceived: " + msgCount.toString() + ' / ' + (messageCount * databases.length * databases.length)))
+              .then(() => process.stdout.write(`\rUpdated (${databases.length} peers): ` + msgCount.toString() + ' / ' + (updateCount * databases.length * databases.length)))
               .then(() => setTimeout(resolve, 100))
           })
         )
-        .then(() => process.stdout.write("\rReceived: " + msgCount.toString() + ' / ' + (messageCount * databases.length * databases.length) + '\n'))
+        .then(() => process.stdout.write(`\rUpdated (${databases.length} peers): ` + msgCount.toString() + ' / ' + (updateCount * databases.length * databases.length) + '\n'))
       }
 
       const getAllTasks = (channelName) => {
@@ -232,21 +250,21 @@ describe.only('OrbitDB - Network Stress Tests', function() {
         return Promise.all(waitForAllPeers)
       })
       .then(() => setupAllTasks(databases))
-      .then(() => console.log(`Sending ${messageCount} messages. This will take a while...`))
+      .then(() => console.log(`Applying ${updateCount} updates per peer. This will take a while...`))
       .then(() => runAllTasks())
-      .then(() => console.log('Messages sent. Waiting for all messages to arrive...'))
+      .then(() => console.log('Done. Waiting for all updates to reach the peers...'))
       .then(() => waitForAllTasks(channelName))
       .then(() => getAllTasks(channelName))
       .then((result) => {
-        // Both databases have the same amount of messages
-        result.forEach(messages => {
-          assert.equal(messages.length, messageCount * databases.length)
+        // Both databases have the same amount of entries
+        result.forEach(entries => {
+          assert.equal(entries.length, updateCount * databases.length)
         })
 
-        // Both databases have the same messages in same order
-        result.reduce((prev, messages) => {
-          assert.deepEqual(messages, prev)
-          return messages
+        // Both databases have the same entries in the same order
+        result.reduce((prev, entries) => {
+          assert.deepEqual(entries, prev)
+          return entries
         }, result[0])
 
         // Success! Cleanup and finish

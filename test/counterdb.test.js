@@ -79,7 +79,7 @@ describe('CounterStore', function() {
         .then(() => {
           assert.equal(counter.value, 14)
           clearTimeout(timeout)
-          client1.close('counter test')
+          counter.close()
           done()
         })
         .catch(done)
@@ -91,7 +91,7 @@ describe('CounterStore', function() {
       counter.events.on('ready', () => {
         assert.equal(counter.value, 14)
         clearTimeout(timeout)
-        client1.close('counter test')
+        counter.close()
         done()
       })
       counter.load()

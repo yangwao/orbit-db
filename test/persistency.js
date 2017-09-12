@@ -56,7 +56,7 @@ describe('orbit-db - Persistency', function() {
       db.load().then(function () {
         mapSeries(entryArr, (i) => db.add('hello' + i))
           .then(() => {
-            client.close(dbName)
+            db.close()
             return new Promise(resolve => setTimeout(() => resolve(), 1000))
           })
           .then(() => {
@@ -68,7 +68,7 @@ describe('orbit-db - Persistency', function() {
                 const items = db.iterator({ limit: -1 }).collect()
                 assert.equal(items.length, entryCount)
                 assert.equal(items[0].payload.value, 'hello0')
-                assert.equal(items[entryCount - 1].payload.value, 'hello99')                  
+                assert.equal(items[entryCount - 1].payload.value, 'hello99')
                 done()
               } catch(e) {
                 done(e)
