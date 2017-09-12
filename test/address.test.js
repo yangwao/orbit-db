@@ -80,6 +80,16 @@ describe('Address', function () {
       input: '/abdc/orbitdb/hello',
       output: `/orbitdb/${id}/abdc/orbitdb/hello`,
     },
+    {
+      description: 'takes an integer as an input',
+      input: 777,
+      output: `/orbitdb/${id}/777`,
+    },
+    {
+      description: 'takes a float as an input',
+      input: 7.7,
+      output: `/orbitdb/${id}/7.7`,
+    },
   ]
 
   const toOrbitDBAddress = (address) => OrbitDB.parseAddress(address, id)

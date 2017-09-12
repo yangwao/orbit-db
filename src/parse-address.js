@@ -7,9 +7,9 @@ function parseAddress (address, id = '') {
   if (!address) 
     throw new Error(`not a valid orbit-db address: ${address}`)
 
-  const parts = address
+  const parts = address.toString()
     .split('/')
-    .filter((e, i) => !((i === 0 || i === 1) && address.indexOf('/orbit') === 0 && e === 'orbitdb'))
+    .filter((e, i) => !((i === 0 || i === 1) && address.toString().indexOf('/orbit') === 0 && e === 'orbitdb'))
     .filter(e => e !== '' && e !== ' ')
 
   // Check if a multihash (db owner id) was given as part of the address
