@@ -13,7 +13,6 @@ const dbPath2 = './orbitdb/tests/replication/daemon2'
 const ipfsPath1 = './orbitdb/tests/replication/daemon1/ipfs'
 const ipfsPath2 = './orbitdb/tests/replication/daemon2/ipfs'
 
-// Shared database name
 const waitForPeers = (ipfs, channel) => {
   return new Promise((resolve, reject) => {
     console.log("Waiting for peers...")

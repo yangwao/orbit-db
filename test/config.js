@@ -1,6 +1,28 @@
 module.exports = {
   timeout: 60000,
   dbname: 'orbit-db-tests',
+  defaultIpfsConfig: {
+    EXPERIMENTAL: {
+      pubsub: true
+    },
+    config: {
+      Addresses: {
+        API: '/ip4/127.0.0.1/tcp/0',
+        Swarm: ['/ip4/0.0.0.0/tcp/0'],
+        Gateway: '/ip4/0.0.0.0/tcp/0'
+      },
+      Bootstrap: [],
+      Discovery: {
+        MDNS: {
+          Enabled: true,
+          Interval: 10
+        },
+        webRTCStar: {
+          Enabled: false
+        }
+      },
+    }
+  },
   daemon1: {
     repo: './ipfs/orbitdb/tests/daemon1',
     EXPERIMENTAL: {
