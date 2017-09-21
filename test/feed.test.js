@@ -3,12 +3,11 @@
 const assert = require('assert')
 const rmrf = require('rimraf')
 const mapSeries = require('p-map-series')
-const IPFS = require('ipfs')
 const OrbitDB = require('../src/OrbitDB')
-const hasIpfsApiWithPubsub = require('./test-utils').hasIpfsApiWithPubsub
 const first = require('./test-utils').first
 const last = require('./test-utils').last
 const config = require('./config')
+const startIpfs = require('./start-ipfs')
 
 const dbPath = './orbitdb/tests/feed'
 const ipfsPath = './orbitdb/tests/feed/ipfs'
@@ -16,120 +15,103 @@ const ipfsPath = './orbitdb/tests/feed/ipfs'
 describe('orbit-db - Feed', function() {
   this.timeout(config.timeout)
 
-  let ipfs, client1, client2, db
+  let ipfs, orbitdb1, orbitdb2, db
 
-  before(function (done) {
+  before(async () => {
     config.daemon1.repo = ipfsPath
     rmrf.sync(config.daemon1.repo)
-    ipfs = new IPFS(config.daemon1)
-    ipfs.on('error', done)
-    ipfs.on('ready', () => {
-      assert.equal(hasIpfsApiWithPubsub(ipfs), true)
-      client1 = new OrbitDB(ipfs)
-      client2 = new OrbitDB(ipfs)
-      done()
-    })
+    rmrf.sync(dbPath)
+    ipfs = await startIpfs(config.daemon1)
+    orbitdb1 = new OrbitDB(ipfs, dbPath + '/1')
+    orbitdb2 = new OrbitDB(ipfs, dbPath + '/2')
   })
 
   after(() => {
-    if(client1) client1.disconnect()
-    if(client2) client2.disconnect()
+    if(orbitdb1) 
+      orbitdb1.disconnect()
+
+    if(orbitdb2) 
+      orbitdb2.disconnect()
+
     ipfs.stop()
   })
 
   describe('Feed', function() {
-    it('returns the added entry\'s hash, 1 entry', () => {
-      db = client1.feed(config.dbname, { replicate: false, maxHistory: 0 })
-      return db.add('hello1')
-        .then((hash) => {
-          const items = db.iterator({ limit: -1 }).collect()
-          assert.notEqual(hash, null)
-          assert.equal(hash, last(items).hash)
-          assert.equal(items.length, 1)
-        })
+    it('returns the added entry\'s hash, 1 entry', async () => {
+      db = await orbitdb1.feed('first')
+      const hash = await db.add('hello1')
+      const items = db.iterator({ limit: -1 }).collect()
+      assert.notEqual(hash, null)
+      assert.equal(hash, last(items).hash)
+      assert.equal(items.length, 1)
     })
 
-    it('returns the added entry\'s hash, 2 entries', () => {
+    it('returns the added entry\'s hash, 2 entries', async () => {
       const prevHash = db.iterator().collect()[0].hash
-      return db.add('hello2')
-        .then((hash) => {
-          const items = db.iterator({ limit: -1 }).collect()
-          assert.equal(items.length, 2)
-          assert.notEqual(hash, null)
-          assert.notEqual(hash, prevHash)
-          assert.equal(hash, last(items).hash)
-        })
+      const hash = await db.add('hello2')
+      const items = db.iterator({ limit: -1 }).collect()
+      assert.equal(items.length, 2)
+      assert.notEqual(hash, null)
+      assert.notEqual(hash, prevHash)
+      assert.equal(hash, last(items).hash)
     })
 
-    it('adds five items', () => {
-      db = client1.feed(config.dbname, { replicate: false, maxHistory: 0 })
-      return mapSeries([1, 2, 3, 4, 5], (i) => db.add('hello' + i))
-        .then(() => {
-          const items = db.iterator({ limit: -1 }).collect()
-          assert.equal(items.length, 5)
-          assert.equal(first(items.map((f) => f.payload.value)), 'hello1')
-          assert.equal(last(items.map((f) => f.payload.value)), 'hello5')
-        })
+    it('adds five items', async () => {
+      db = await orbitdb1.feed('second')
+      await mapSeries([1, 2, 3, 4, 5], (i) => db.add('hello' + i))
+      const items = db.iterator({ limit: -1 }).collect()
+      assert.equal(items.length, 5)
+      assert.equal(first(items.map((f) => f.payload.value)), 'hello1')
+      assert.equal(last(items.map((f) => f.payload.value)), 'hello5')
     })
 
-    it('adds an item that is > 256 bytes', () => {
-      db = client1.feed(config.dbname, { replicate: false, maxHistory: 0 })
-
+    it('adds an item that is > 256 bytes', async () => {
+      db = await orbitdb1.feed('third')
       let msg = new Buffer(1024)
       msg.fill('a')
-      return db.add(msg.toString())
-        .then((hash) => {
-          assert.notEqual(hash, null)
-          assert.equal(hash.startsWith('Qm'), true)
-          assert.equal(hash.length, 46)
-        })
+      const hash = await db.add(msg.toString())
+      assert.notEqual(hash, null)
+      assert.equal(hash.startsWith('Qm'), true)
+      assert.equal(hash.length, 46)
     })
 
-    it('deletes an item when only one item in the database', () => {
-      db = client1.feed(config.dbname, { replicate: false, maxHistory: 0 })
-
-      return db.add('hello3')
-        .then((hash) => db.remove(hash))
-        .then((delopHash) => {
-          const items = db.iterator().collect()
-          assert.equal(delopHash.startsWith('Qm'), true)
-          assert.equal(items.length, 0)
-        })
+    it('deletes an item when only one item in the database', async () => {
+      db = await orbitdb1.feed('fourth')
+      const hash = await db.add('hello3')
+      const delopHash = await db.remove(hash)
+      const items = db.iterator().collect()
+      assert.equal(delopHash.startsWith('Qm'), true)
+      assert.equal(items.length, 0)
     })
 
-    it('deletes an item when two items in the database', () => {
-      db = client1.feed(config.dbname, { replicate: false, maxHistory: 0 })
+    it('deletes an item when two items in the database', async () => {
+      db = await orbitdb1.feed('fifth')
 
-      return db.add('hello1')
-        .then(() => db.add('hello2'))
-        .then((hash) => db.remove(hash))
-        .then(() => {            
-          const items = db.iterator({ limit: -1 }).collect()
-          assert.equal(items.length, 1)
-          assert.equal(first(items).payload.value, 'hello1')
-        })
+      await db.add('hello1')
+      const hash = await db.add('hello2')
+      await db.remove(hash)
+      const items = db.iterator({ limit: -1 }).collect()
+      assert.equal(items.length, 1)
+      assert.equal(first(items).payload.value, 'hello1')
     })
 
-    it('deletes an item between adds', () => {
-      db = client1.feed(config.dbname, { replicate: false, maxHistory: 0 })
+    it('deletes an item between adds', async () => {
+      db = await orbitdb1.feed('sixth')
 
-      let hash
-      return db.add('hello1')
-        .then((res) => hash = res)
-        .then(() => db.add('hello2'))
-        .then(() => db.remove(hash))
-        .then(() => db.add('hello3'))
-        .then(() => {
-          const items = db.iterator({ limit: -1 }).collect()
-          assert.equal(items.length, 2)
+      const hash = await db.add('hello1')
+      await db.add('hello2')
+      await db.remove(hash)
+      await db.add('hello3')
 
-          const firstItem = first(items)
-          const secondItem = items[1]
-          assert.equal(firstItem.hash.startsWith('Qm'), true)
-          assert.equal(firstItem.payload.key, null)
-          assert.equal(firstItem.payload.value, 'hello2')
-          assert.equal(secondItem.payload.value, 'hello3')
-        })
+      const items = db.iterator({ limit: -1 }).collect()
+      assert.equal(items.length, 2)
+
+      const firstItem = first(items)
+      const secondItem = items[1]
+      assert.equal(firstItem.hash.startsWith('Qm'), true)
+      assert.equal(firstItem.payload.key, null)
+      assert.equal(firstItem.payload.value, 'hello2')
+      assert.equal(secondItem.payload.value, 'hello3')
     })
   })
 
@@ -137,11 +119,10 @@ describe('orbit-db - Feed', function() {
     let items = []
     const itemCount = 5
 
-    beforeEach(() => {
+    before(async () => {
       items = []
-      db = client1.feed(config.dbname, { replicate: false, maxHistory: 0 })
-      return mapSeries([0, 1, 2, 3, 4], (i) => db.add('hello' + i))
-        .then((res) => items = res)
+      db = await orbitdb1.feed('feed-iterator')
+      items = await mapSeries([0, 1, 2, 3, 4], (i) => db.add('hello' + i))
     })
 
     describe('Defaults', function() {
@@ -401,27 +382,69 @@ describe('orbit-db - Feed', function() {
   })
 
   describe('sync', () => {
-    const options = { 
-      replicate: false, 
-    }
+    it('syncs databases', async (done) => {
+      const options = { 
+        // Set write access for both clients
+        write: [
+          orbitdb1.key.getPublic('hex'), 
+          orbitdb2.key.getPublic('hex')
+        ],
+      }
 
-    it('syncs databases', (done) => {
-      const db1 = client1.feed(config.dbname, options)
-      const db2 = client2.feed(config.dbname, options)
+      const db1 = await orbitdb1.feed(config.dbname, options)
+      const db2 = await orbitdb2.feed(db1.path, options)
+
+      db1.events.on('error', (e) => {
+        console.log(e.stack())
+        done(e)
+      })
+
       db2.events.on('write', (dbname, hash, entry, heads) => {
         assert.equal(db1.iterator({ limit: -1 }).collect().length, 0)
         db1.sync(heads)
       })
 
-      db1.events.on('synced', () => {
+      db1.events.on('replicated', () => {
         const items = db1.iterator({ limit: -1 }).collect()
         assert.equal(items.length, 1)
         assert.equal(items[0].payload.value, 'hello2')
         done()
       })
 
-      db2.add('hello2')
-        .catch(done)
+      await db2.add('hello2')
+    })
+
+    it('doesn\'t sync if peer is not allowed to write to the database', async (done) => {
+      let options = { 
+        // No write access (only creator of the database can write)
+        write: [],
+      }
+
+      options = Object.assign({}, options, { path: dbPath + '/sync-test/1' })
+      const db1 = await orbitdb1.feed(config.dbname, options)
+
+      options = Object.assign({}, options, { path: dbPath + '/sync-test/2' })
+      const db2 = await orbitdb2.feed(db1.path, options)
+
+      db1.events.on('error', (e) => {
+        console.log(e)
+        done(e)
+      })
+
+      db2.events.on('write', (dbname, hash, entry, heads) => {
+        assert.equal(db1.iterator({ limit: -1 }).collect().length, 0)
+        db1.sync(heads)
+        setTimeout(() => {
+          assert.equal(db1.iterator({ limit: -1 }).collect().length, 0)
+          done()
+        }, 500)
+      })
+
+      db1.events.on('replicated', () => {
+        done(new Error('Shouldn\'t replicate!'))
+      })
+
+      await db2.add('hello2')
     })
   })
 })
